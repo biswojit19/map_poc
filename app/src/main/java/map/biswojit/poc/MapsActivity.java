@@ -40,22 +40,20 @@ import java.util.TimerTask;
 
 public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback , LocationListener {
 
-    private static final long LOCATION_REFRESH_TIME = 3000;
+    private static final long LOCATION_REFRESH_TIME = 44000;
     private static final float LOCATION_REFRESH_DISTANCE = 5000;
     private static final long MIN_TIME_BW_UPDATES = 3000;
     private static final float MIN_DISTANCE_CHANGE_FOR_UPDATES = 3000;
     private GoogleMap mMap;
     private SharedPreferences sharedPreferences;
-    private int locationCount = 0;
+    private int locationCount,locationCountPos = 0;
     private boolean isLocation = false;
     private HashMap<String, LatLng> selectedLatLng;
     private Spinner Sp_PostalCodes;
     private ArrayList<String> arrayPostalCodes = new ArrayList<String>();
     private ArrayList<String> finalarrayPostalCodes = new ArrayList<String>();
     private ArrayAdapter<String> spinnerArrayAdapter;
-    private LocationManager mLocationManager;
     private List<Marker> mMarkers = new ArrayList<Marker>();
-    private boolean canGetLocation;
     private Timer mTimer1;
     private TimerTask mTt1;
     private Handler mTimerHandler = new Handler();
@@ -68,36 +66,42 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     Double latitude;
     Double longitude;
     LatLng currentLatLng ;
+    private boolean canGetLocation;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_maps); // hello
+        setContentView(R.layout.activity_maps);
 
 
-        // Obtain the SupportMapFragment and get notified when the map is ready to be used.ok
+        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
 
         mapFragment.getMapAsync(this);
-       
+
         sharedPreferences = getSharedPreferences("location", 0);
         locationCount = sharedPreferences.getInt("locationCount", 0);
         locationCount = 0;
         Sp_PostalCodes = (Spinner) findViewById(R.id.sp_postal);
         selectedLatLng = new HashMap<>();
-        mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+
         spinnerArrayAdapter = new ArrayAdapter<String>(this,
                 android.R.layout.simple_spinner_item, finalarrayPostalCodes);
         Sp_PostalCodes.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
-                if(parent.getItemAtPosition(pos).toString().equals("All")){
-                    //if(cost_spinner_count > 0){
-                    ShowAllMarker();
+                if(parent == null || parent.getItemAtPosition(pos) == null){
+                    Toast.makeText(getBaseContext(), "Select Location.", Toast.LENGTH_LONG).show();
+                }else {
+                    if (parent.getItemAtPosition(pos).toString().equals("All")) {
+                        //if(cost_spinner_count > 0){
+                        ShowAllMarker();
 
-                    //}
-                    //cost_spinner_count++;
-                    //activity.setCost(parent.getItemAtPosition(pos).toString());
-                }else{
-                    ShowMarker(pos);
+                        //}
+                        //cost_spinner_count++;
+                        //activity.setCost(parent.getItemAtPosition(pos).toString());
+                    } else {
+                        ShowMarker(pos);
+                    }
                 }
 
             }
@@ -108,7 +112,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             }
         });
-
+        Toast.makeText(getBaseContext(), "Click on Map to add markers.Markers will be deleted after 1 minutes.", Toast.LENGTH_LONG).show();
     }
 
     private void LoadAllMarker() {  // Loads once from sharedpreference once the app starts
@@ -156,6 +160,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             drawMarker(latlng,postalCode);
         }
 
+        Sp_PostalCodes.setSelection( finalarrayPostalCodes.size() -1  );
+        //Toast.makeText(getBaseContext(), "Showing All Markers", Toast.LENGTH_SHORT).show();
+
     }
 
     private void ShowMarker(int pos) {
@@ -164,30 +171,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         drawMarker(selectedLatLng.get(postalcode),postalcode);
         mMarkers.get(pos).showInfoWindow();
         mMap.moveCamera(CameraUpdateFactory.newLatLng(selectedLatLng.get(postalcode)));
+        Toast.makeText(getBaseContext(), "Showing Marker for location "+postalcode, Toast.LENGTH_SHORT).show();
     }
 
-    private final LocationListener mLocationListener = new LocationListener() {
-        @Override
-        public void onLocationChanged(final Location location) {
-
-            int i = 1;
-        }
-
-        @Override
-        public void onStatusChanged(String s, int i, Bundle bundle) {
-
-        }
-
-        @Override
-        public void onProviderEnabled(String s) {
-
-        }
-
-        @Override
-        public void onProviderDisabled(String s) {
-
-        }
-    };
 
     /**
      * Manipulates the map once available.
@@ -213,9 +199,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             return;
         }
         mMap.setMyLocationEnabled(true);
-        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, LOCATION_REFRESH_TIME,
-                LOCATION_REFRESH_DISTANCE, mLocationListener);
-
 
         locationManager = (LocationManager) getApplicationContext()
                 .getSystemService(Context.LOCATION_SERVICE);
@@ -275,15 +258,17 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             currentLatLng = new LatLng(latitude, longitude);
             addMarker( currentLatLng);
             mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng,17));
+            Toast.makeText(getBaseContext(), "Current Location Marker is added to the Map", Toast.LENGTH_SHORT).show();
         }
 
-                            //addMarker(point);
+        //addMarker(point);
         //mMap.setOnInfoWindowClickListener(getInfoWindowClickListener());
         mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
 
             @Override
             public void onMapClick(LatLng point) {
                 addMarker(point);
+                //Toast.makeText(getBaseContext(), "Marker is added to the Map", Toast.LENGTH_SHORT).show();
 
             }
         });
@@ -313,41 +298,44 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             add = geo.getFromLocation(point.latitude, point.longitude, 1);
             PostalCode = add.get(0).getPostalCode(); //u'll get postal code in addstr
 
+
+            drawMarker(point,PostalCode);
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+
+            locationCountPos = locationCount;
+
+            if(arrayPostalCodes.indexOf(PostalCode) != -1){
+                locationCountPos = arrayPostalCodes.indexOf(PostalCode);
+                Toast.makeText(getBaseContext(), "Updated location for PostalCode", Toast.LENGTH_SHORT).show();
+                locationCount-- ;
+                locationCountPos++ ;
+            }
+
+            editor.putString("lat"+ Integer.toString((locationCountPos-1)), Double.toString(point.latitude));
+            editor.putString("lng"+ Integer.toString((locationCountPos-1)), Double.toString(point.longitude));
+
+            editor.putString("Postalcode"+ Integer.toString((locationCountPos-1)), PostalCode);
+            editor.putInt("locationCount", locationCount);
+            editor.commit();
+            selectedLatLng.put(PostalCode,point);
+
+            arrayPostalCodes.add((locationCountPos-1),PostalCode);
+            finalarrayPostalCodes.clear();
+            finalarrayPostalCodes.addAll(arrayPostalCodes);
+            finalarrayPostalCodes.add("All");
+            spinnerArrayAdapter.notifyDataSetChanged();
+
+            if(arrayPostalCodes.indexOf(PostalCode) != -1){
+                ShowAllMarker();
+            }
+
         }
         catch(Exception e){
             Log.e("Exception",e.toString());
         }
-        drawMarker(point,PostalCode);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
 
-        int locationCountPos = locationCount;
 
-        if(arrayPostalCodes.indexOf(PostalCode) != -1){
-            locationCountPos = arrayPostalCodes.indexOf(PostalCode);
-             Toast.makeText(getBaseContext(), "Updated location for PostalCode", Toast.LENGTH_SHORT).show();
-            locationCount-- ;
-            locationCountPos++ ;
-        }
 
-        editor.putString("lat"+ Integer.toString((locationCountPos-1)), Double.toString(point.latitude));
-        editor.putString("lng"+ Integer.toString((locationCountPos-1)), Double.toString(point.longitude));
-
-        editor.putString("Postalcode"+ Integer.toString((locationCountPos-1)), PostalCode);
-        editor.putInt("locationCount", locationCount);
-        editor.commit();
-        selectedLatLng.put(PostalCode,point);
-
-        arrayPostalCodes.add((locationCountPos-1),PostalCode);
-        finalarrayPostalCodes.clear();
-        finalarrayPostalCodes.addAll(arrayPostalCodes);
-        finalarrayPostalCodes.add("All");
-        spinnerArrayAdapter.notifyDataSetChanged();
-
-        if(arrayPostalCodes.indexOf(PostalCode) != -1){
-            ShowAllMarker();
-        }
-
-        Toast.makeText(getBaseContext(), "Marker is added to the Map", Toast.LENGTH_SHORT).show();
     }
 
     private void drawMarker(LatLng point, String markerText){   //draws marker
@@ -369,7 +357,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
 
         if (!listPermissionsNeeded.isEmpty()) {
-           // Toast.makeText(MapsActivity.this, getString(R.string.permission_agreement), Toast.LENGTH_LONG).show();
+            // Toast.makeText(MapsActivity.this, getString(R.string.permission_agreement), Toast.LENGTH_LONG).show();
             ActivityCompat.requestPermissions(this, listPermissionsNeeded.toArray(new String[listPermissionsNeeded.size()]), 1);
             return false;
         } else {
@@ -395,6 +383,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 //Toast.makeText(MapsActivity.this,getString(R.string.loc_permission), Toast.LENGTH_SHORT).show();
             }
             if (isLocation) {
+
             }
         } else {
             super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -421,12 +410,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
-    private void stopTimer(){
-        if(mTimer1 != null){
-            mTimer1.cancel();
-            mTimer1.purge();
-        }
-    }
+
 
     private void startTimer(){
         mTimer1 = new Timer();
@@ -434,7 +418,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             public void run() {
                 mTimerHandler.post(new Runnable() {
                     public void run(){
-                       resetCache();
+                        resetCache();
                     }
                 });
             }
@@ -449,12 +433,15 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         editor.clear();
         editor.commit();
         locationCount=0;
-        addMarker( currentLatLng);
+        locationCountPos = 0;
+
         arrayPostalCodes.clear();
         finalarrayPostalCodes.clear();
         finalarrayPostalCodes.add("All");
         selectedLatLng.clear();
         mMarkers.clear();
+        addMarker( currentLatLng);
+        Toast.makeText(getBaseContext(), "Current Location Marker is added to the Map", Toast.LENGTH_SHORT).show();
         spinnerArrayAdapter.notifyDataSetChanged();
     }
 }
